@@ -1,7 +1,9 @@
 """ Resnet implementation based on https://github.com/keras-team/keras/blob/master/keras/applications/resnet.py """
+from typing import Optional
+
+import gdown
 import torch.nn as nn
 from torch import Tensor
-from typing import Optional
 
 
 def conv1x1(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
@@ -86,8 +88,8 @@ class ResNet50(nn.Module):
         downsample = None
         if stride != 1 or self.inplanes != planes * Bottleneck.expansion:
             downsample = nn.Sequential(
-                    conv1x1(self.inplanes, planes * Bottleneck.expansion, stride),
-                    nn.BatchNorm2d(planes * Bottleneck.expansion, eps=1.001e-5, momentum=0.99),
+                conv1x1(self.inplanes, planes * Bottleneck.expansion, stride),
+                nn.BatchNorm2d(planes * Bottleneck.expansion, eps=1.001e-5, momentum=0.99),
             )
 
         layers = []
@@ -116,13 +118,13 @@ class ResNet50(nn.Module):
         return self._forward_impl(x)
 
 
+def radimagenet_resnet50(model_path="./RadImageNet-ResNet50_notop.pth"):
+    model = ResNet50()
 
-
-
-
-
-
-
-
-def radimagenet_resnet50(*args, **kwargs):
-    pass
+    gdown.download(
+        url="https://drive.google.com/uc?export=download&id=1VOWHgOq0rm7OkE_JxlWXhMAH4CvcXUHT",
+        output=model_path,
+        quiet=False,
+    )
+    model.load_state_dict(model_path)
+    return model

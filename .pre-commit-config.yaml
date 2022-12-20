@@ -29,6 +29,7 @@ repos:
     rev: 3.9.2
     hooks:
       - id: flake8
+        exclude: hubconf.py
         args: # arguments to configure flake8
           # these are errors that will be ignored by flake8
           # check out their meaning here

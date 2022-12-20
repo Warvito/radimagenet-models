@@ -4,15 +4,16 @@ Script to transform the weights of the ResNetmodel from Keras to Pytorch.
 Script based on https://github.com/BMEII-AI/RadImageNet/issues/3#issuecomment-1232417600
 and https://discuss.pytorch.org/t/transferring-weights-from-keras-to-pytorch/9889
 """
-import tensorflow as tf
 import numpy as np
+import tensorflow as tf
 import torch
+
 from radimagenet_models.models.resnet import ResNet50
 
 torch.set_printoptions(precision=10)
 
-input_path = '/media/walter/Storage/Projects/radimagenet-models/outputs/original_weights/RadImageNet-ResNet50_notop.h5'
-out_path = '/media/walter/Storage/Projects/radimagenet-models/outputs/pytorch_weights/RadImageNet-ResNet50_notop.pt'
+input_path = "/media/walter/Storage/Projects/radimagenet-models/outputs/original_weights/RadImageNet-ResNet50_notop.h5"
+out_path = "/media/walter/Storage/Projects/radimagenet-models/outputs/pytorch_weights/RadImageNet-ResNet50_notop.pth"
 
 
 def convert_conv(pytorch_conv, tf_conv):
@@ -32,27 +33,27 @@ def convert_bn(pytorch_bn, tf_bn):
 def convert_stack(pytorch_stack, keras_model, stack_name, num_blocks):
     layers_list = []
     for layer in keras_model.layers:
-        if stack_name in layer.get_config()['name']:
+        if stack_name in layer.get_config()["name"]:
             layers_list.append(layer)
 
-    for i in range(1, num_blocks+1):
-        pytorch_block = pytorch_stack[i-1]
+    for i in range(1, num_blocks + 1):
+        pytorch_block = pytorch_stack[i - 1]
         for layer in layers_list:
-            if f"{stack_name}_block{str(i)}_0_conv" in layer.get_config()['name']:
+            if f"{stack_name}_block{str(i)}_0_conv" in layer.get_config()["name"]:
                 pytorch_block.downsample[0] = convert_conv(pytorch_block.downsample[0], layer)
-            elif f"{stack_name}_block{str(i)}_0_bn" in layer.get_config()['name']:
+            elif f"{stack_name}_block{str(i)}_0_bn" in layer.get_config()["name"]:
                 pytorch_block.downsample[1] = convert_bn(pytorch_block.downsample[1], layer)
-            elif f"{stack_name}_block{str(i)}_1_conv" in layer.get_config()['name']:
+            elif f"{stack_name}_block{str(i)}_1_conv" in layer.get_config()["name"]:
                 pytorch_block.conv1 = convert_conv(pytorch_block.conv1, layer)
-            elif f"{stack_name}_block{str(i)}_1_bn" in layer.get_config()['name']:
+            elif f"{stack_name}_block{str(i)}_1_bn" in layer.get_config()["name"]:
                 pytorch_block.bn1 = convert_bn(pytorch_block.bn1, layer)
-            elif f"{stack_name}_block{str(i)}_2_conv" in layer.get_config()['name']:
+            elif f"{stack_name}_block{str(i)}_2_conv" in layer.get_config()["name"]:
                 pytorch_block.conv2 = convert_conv(pytorch_block.conv2, layer)
-            elif f"{stack_name}_block{str(i)}_2_bn" in layer.get_config()['name']:
+            elif f"{stack_name}_block{str(i)}_2_bn" in layer.get_config()["name"]:
                 pytorch_block.bn2 = convert_bn(pytorch_block.bn2, layer)
-            elif f"{stack_name}_block{str(i)}_3_conv" in layer.get_config()['name']:
+            elif f"{stack_name}_block{str(i)}_3_conv" in layer.get_config()["name"]:
                 pytorch_block.conv3 = convert_conv(pytorch_block.conv3, layer)
-            elif f"{stack_name}_block{str(i)}_3_bn" in layer.get_config()['name']:
+            elif f"{stack_name}_block{str(i)}_3_bn" in layer.get_config()["name"]:
                 pytorch_block.bn3 = convert_bn(pytorch_block.bn3, layer)
 
         pytorch_stack[i - 1] = pytorch_block
@@ -87,10 +88,13 @@ def main():
 
     print(f"Are the outputs all close (absolute tolerance = 1e-04)? {np.allclose(outputs_tf, outputs_pt, atol=1e-04)}")
     print("Pytorch output")
-    print(outputs_pt[0,:30,0,0])
+    print(outputs_pt[0, :30, 0, 0])
     print("Tensoflow Keras output")
-    print(outputs_tf[0,:30,0,0])
+    print(outputs_tf[0, :30, 0, 0])
+
+    # Saving model
+    torch.save(pytorch_model.state_dict(), out_path)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
