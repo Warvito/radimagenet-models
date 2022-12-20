@@ -16,3 +16,5 @@ or
 import torch
 model = torch.hub.load("Warvito/radimagenet-models", 'radimagenet_resnet50')
 ```
+
+For now, the package is available with `pip install -i https://test.pypi.org/simple/ radimagenet-models `
