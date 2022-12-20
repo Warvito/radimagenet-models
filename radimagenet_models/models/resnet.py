@@ -1,3 +1,4 @@
+""" Resnet implementation based on https://github.com/keras-team/keras/blob/master/keras/applications/resnet.py """
 import torch.nn as nn
 from torch import Tensor
 from typing import Optional
@@ -123,5 +124,5 @@ class ResNet50(nn.Module):
 
 
 
-def resnet50(*args, **kwargs):
+def radimagenet_resnet50(*args, **kwargs):
     pass
