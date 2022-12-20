@@ -25,34 +25,47 @@ def convert_bn(pytorch_bn, tf_bn):
     pytorch_bn.running_var.data = torch.tensor(tf_bn.moving_variance.numpy())
     return pytorch_bn
 
-
 def convert_stack(pytorch_stack, keras_model, stack_name, num_blocks):
     layers_list = []
     for layer in keras_model.layers:
         if stack_name in layer.get_config()['name']:
             layers_list.append(layer)
+    print(f"we have {len(layers_list)} layers")
 
+    list_of_added = []
     for i in range(1, num_blocks+1):
         pytorch_block = pytorch_stack[i-1]
         for layer in layers_list:
+            # print(layer.name)
             if f"{stack_name}_block{str(i)}_0_conv" in layer.get_config()['name']:
                 pytorch_block.downsample[0] = convert_conv(pytorch_block.downsample[0], layer)
-            if f"{stack_name}_block{str(i)}_0_bn" in layer.get_config()['name']:
+                list_of_added.append(layer)
+            elif f"{stack_name}_block{str(i)}_0_bn" in layer.get_config()['name']:
                 pytorch_block.downsample[1] = convert_bn(pytorch_block.downsample[1], layer)
-
-            if f"{stack_name}_block{str(i)}_1_conv" in layer.get_config()['name']:
+                list_of_added.append(layer)
+            elif f"{stack_name}_block{str(i)}_1_conv" in layer.get_config()['name']:
                 pytorch_block.conv1 = convert_conv(pytorch_block.conv1, layer)
-            if f"{stack_name}_block{str(i)}_1_bn" in layer.get_config()['name']:
+                list_of_added.append(layer)
+            elif f"{stack_name}_block{str(i)}_1_bn" in layer.get_config()['name']:
                 pytorch_block.bn1 = convert_bn(pytorch_block.bn1, layer)
-            if f"{stack_name}_block{str(i)}_2_conv" in layer.get_config()['name']:
+                list_of_added.append(layer)
+            elif f"{stack_name}_block{str(i)}_2_conv" in layer.get_config()['name']:
                 pytorch_block.conv2 = convert_conv(pytorch_block.conv2, layer)
-            if f"{stack_name}_block{str(i)}_2_bn" in layer.get_config()['name']:
+                list_of_added.append(layer)
+            elif f"{stack_name}_block{str(i)}_2_bn" in layer.get_config()['name']:
                 pytorch_block.bn2 = convert_bn(pytorch_block.bn2, layer)
-            if f"{stack_name}_block{str(i)}_3_conv" in layer.get_config()['name']:
+                list_of_added.append(layer)
+            elif f"{stack_name}_block{str(i)}_3_conv" in layer.get_config()['name']:
                 pytorch_block.conv3 = convert_conv(pytorch_block.conv3, layer)
-            if f"{stack_name}_block{str(i)}_3_bn" in layer.get_config()['name']:
+                list_of_added.append(layer)
+            elif f"{stack_name}_block{str(i)}_3_bn" in layer.get_config()['name']:
                 pytorch_block.bn3 = convert_bn(pytorch_block.bn3, layer)
+                list_of_added.append(layer)
 
+        pytorch_stack[i - 1] = pytorch_block
+    A = list(set(layers_list) - set(list_of_added))
+    for i in A:
+        print(i.name)
     return pytorch_stack
 
 
@@ -78,20 +91,142 @@ with torch.no_grad():
 
 x_tf = tf.ones((1, 224,224, 3))
 outputs_tf = keras_model(x_tf, training=False)
-# outputs_tf = keras_model.get_layer("conv1_conv")(outputs_tf)
-# outputs_tf = keras_model.get_layer("conv1_bn")(outputs_tf)
-# outputs_tf = np.transpose(outputs_tf.numpy(), (0, 3, 1, 2))
-
-print(np.allclose(outputs_tf.numpy(), outputs_pt, atol=1e-06))
+outputs_tf = outputs_tf.numpy()
+print(np.allclose(outputs_tf, outputs_pt, atol=1e-01))
 
 
 
+
+
+torch.set_printoptions(precision=10)
+pytorch_model.eval()
+x = np.random.rand(1,224,224,3)
+
+x_pt = torch.from_numpy(np.transpose(x,(0,3,1,2))).float()
+# x_pt = torch.ones((1, 3, 224, 224))
 with torch.no_grad():
-    x_pt = torch.ones((1, 64, 112, 112))
-    pt_layer = pytorch_model.bn1.eval()
-    out_pt = pt_layer(x_pt)
-    out_pt = np.transpose(out_pt.numpy(), (0, 2, 3, 1))
+    h = pytorch_model.conv1(x_pt)
+    h = pytorch_model.bn1(h)
+    h = pytorch_model.relu(h)
+    h1 = pytorch_model.maxpool(h)
 
-bn_layer = keras_model.get_layer("conv1_bn")
-x_tf = tf.ones((1, 112, 112, 64))
-out_tf = bn_layer(x_tf, training=False)
+    h = pytorch_model.layer1[0].conv1(h1)
+    h = pytorch_model.layer1[0].bn1(h)
+    h = pytorch_model.layer1[0].relu(h)
+    h = pytorch_model.layer1[0].conv2(h)
+    h = pytorch_model.layer1[0].bn2(h)
+    h = pytorch_model.layer1[0].relu(h)
+    h = pytorch_model.layer1[0].conv3(h)
+    h = pytorch_model.layer1[0].bn3(h)
+    h1 = pytorch_model.layer1[0].downsample(h1)
+    h = h + h1
+    h2 = pytorch_model.layer1[0].relu(h)
+    h=h2
+
+    h = pytorch_model.layer1[1].conv1(h)
+    h = pytorch_model.layer1[1].bn1(h)
+    h = pytorch_model.layer1[1].relu(h)
+    h = pytorch_model.layer1[1].conv2(h)
+    h = pytorch_model.layer1[1].bn2(h)
+    h = pytorch_model.layer1[1].relu(h)
+    h = pytorch_model.layer1[1].conv3(h)
+    h = pytorch_model.layer1[1].bn3(h)
+    h = h + h2
+    h3 = pytorch_model.layer1[1].relu(h)
+    h=h3
+
+    h = pytorch_model.layer1[2].conv1(h)
+    h = pytorch_model.layer1[2].bn1(h)
+    h = pytorch_model.layer1[2].relu(h)
+    h = pytorch_model.layer1[2].conv2(h)
+    h = pytorch_model.layer1[2].bn2(h)
+    h = pytorch_model.layer1[2].relu(h)
+    h = pytorch_model.layer1[2].conv3(h)
+    h = pytorch_model.layer1[2].bn3(h)
+    h = h + h3
+    h4 = pytorch_model.layer1[2].relu(h)
+    h=h4
+
+    # h = pytorch_model.layer2[0].conv1(h)
+    # h = pytorch_model.layer2[0].bn1(h)
+    # h = pytorch_model.layer2[0].relu(h)
+    # h = pytorch_model.layer2[0].conv2(h)
+    # h = pytorch_model.layer2[0].bn2(h)
+    # h = pytorch_model.layer2[0].relu(h)
+    # h = pytorch_model.layer2[0].conv3(h)
+    # h = pytorch_model.layer2[0].bn3(h)
+    # h4 = pytorch_model.layer2[0].downsample(h4)
+    # h = h + h4
+    # h2 = pytorch_model.layer2[0].relu(h)
+    # h=h2
+
+    out_pt = np.transpose(h.numpy(), (0, 2, 3, 1))
+
+
+x_tf = tf.convert_to_tensor(x)
+# x_tf = tf.ones((1, 224, 224, 3))
+h = keras_model.get_layer("conv1_pad")(x_tf, training=False)
+h = keras_model.get_layer("conv1_conv")(h, training=False)
+h = keras_model.get_layer("conv1_bn")(h, training=False)
+h = keras_model.get_layer("conv1_relu")(h, training=False)
+h = keras_model.get_layer("pool1_pad")(h, training=False)
+h1 = keras_model.get_layer("pool1_pool")(h, training=False)
+
+h = keras_model.get_layer("conv2_block1_1_conv")(h1, training=False)
+h = keras_model.get_layer("conv2_block1_1_bn")(h, training=False)
+h = keras_model.get_layer("conv2_block1_1_relu")(h, training=False)
+h = keras_model.get_layer("conv2_block1_2_conv")(h, training=False)
+h = keras_model.get_layer("conv2_block1_2_bn")(h, training=False)
+h = keras_model.get_layer("conv2_block1_2_relu")(h, training=False)
+h = keras_model.get_layer("conv2_block1_3_conv")(h, training=False)
+h = keras_model.get_layer("conv2_block1_3_bn")(h, training=False)
+h1 = keras_model.get_layer("conv2_block1_0_conv")(h1, training=False)
+h1 = keras_model.get_layer("conv2_block1_0_bn")(h1, training=False)
+h = keras_model.get_layer("conv2_block1_add")([h1, h], training=False)
+h2 = keras_model.get_layer("conv2_block1_out")(h, training=False)
+h = h2
+
+h = keras_model.get_layer("conv2_block2_1_conv")(h, training=False)
+h = keras_model.get_layer("conv2_block2_1_bn")(h, training=False)
+h = keras_model.get_layer("conv2_block2_1_relu")(h, training=False)
+h = keras_model.get_layer("conv2_block2_2_conv")(h, training=False)
+h = keras_model.get_layer("conv2_block2_2_bn")(h, training=False)
+h = keras_model.get_layer("conv2_block2_2_relu")(h, training=False)
+h = keras_model.get_layer("conv2_block2_3_conv")(h, training=False)
+h = keras_model.get_layer("conv2_block2_3_bn")(h, training=False)
+h = keras_model.get_layer("conv2_block2_add")([h2, h], training=False)
+h3 = keras_model.get_layer("conv2_block2_out")(h, training=False)
+h=h3
+
+h = keras_model.get_layer("conv2_block3_1_conv")(h3, training=False)
+h = keras_model.get_layer("conv2_block3_1_bn")(h, training=False)
+h = keras_model.get_layer("conv2_block3_1_relu")(h, training=False)
+h = keras_model.get_layer("conv2_block3_2_conv")(h, training=False)
+h = keras_model.get_layer("conv2_block3_2_bn")(h, training=False)
+h = keras_model.get_layer("conv2_block3_2_relu")(h, training=False)
+h = keras_model.get_layer("conv2_block3_3_conv")(h, training=False)
+h = keras_model.get_layer("conv2_block3_3_bn")(h, training=False)
+h = keras_model.get_layer("conv2_block3_add")([h3, h], training=False)
+h4 = keras_model.get_layer("conv2_block3_out")(h, training=False)
+h=h4
+
+# h = keras_model.get_layer("conv3_block1_1_conv")(h, training=False)
+# h = keras_model.get_layer("conv3_block1_1_bn")(h, training=False)
+# h = keras_model.get_layer("conv3_block1_1_relu")(h, training=False)
+# h = keras_model.get_layer("conv3_block1_2_conv")(h, training=False)
+# h = keras_model.get_layer("conv3_block1_2_bn")(h, training=False)
+# h = keras_model.get_layer("conv3_block1_2_relu")(h, training=False)
+# h = keras_model.get_layer("conv3_block1_3_conv")(h, training=False)
+# h = keras_model.get_layer("conv3_block1_3_bn")(h, training=False)
+# h4 = keras_model.get_layer("conv3_block1_0_conv")(h4, training=False)
+# h4 = keras_model.get_layer("conv3_block1_0_bn")(h4, training=False)
+# h = keras_model.get_layer("conv3_block1_add")([h4, h], training=False)
+# h2 = keras_model.get_layer("conv3_block1_out")(h, training=False)
+# h = h2
+
+out_tf = h.numpy()
+
+print(np.allclose(out_tf, out_pt, atol=1e-04))
+
+print(out_pt[0,:30,0,1])
+print(out_tf[0,:30,0,1])
