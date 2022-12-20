@@ -11,46 +11,48 @@ from radimagenet_models.models.resnet import ResNet50
 input_path = '/media/walter/Storage/Projects/radimagenet-models/outputs/original_weights/RadImageNet-ResNet50_notop.h5'
 out_path = '/media/walter/Storage/Projects/radimagenet-models/outputs/pytorch_weights/RadImageNet-ResNet50_notop.pt'
 
-def keras_to_pytorch(keras_model):
-    weight_dict = {
-        "conv_weights": dict(),
-        "conv_bias": dict(),
-        "bn_gamma": dict(),
-        "bn_beta": dict(),
-        "bn_moving_mean": dict(),
-        "bn_moving_variance": dict(),
-    }
-    for layer in keras_model.layers:
-        print(layer.get_config()['name'])
-        if type(layer) is keras.layers.Conv2D:
-            weight_dict["conv_weights"][layer.get_config()['name'] + '.weight'] = np.transpose(layer.get_weights()[0], (3, 2, 0, 1))
-            weight_dict["conv_bias"][layer.get_config()['name'] + '.bias'] = layer.get_weights()[1]
-        elif type(layer) is keras.layers.BatchNormalization:
-            weight_dict["bn_gamma"][layer.get_config()['name'] + '.gamma'] = layer.gamma
-            weight_dict["bn_beta"][layer.get_config()['name'] + '.beta'] = layer.beta
-            weight_dict["bn_moving_mean"][layer.get_config()['name'] + '.moving_mean'] = layer.moving_mean
-            weight_dict["bn_moving_variance"][layer.get_config()['name'] + '.moving_variance'] = layer.moving_variance
-    return weight_dict
+
+def convert_conv(pytorch_conv, tf_conv):
+    pytorch_conv.weight.data = torch.tensor(np.transpose(tf_conv.kernel.numpy(), (3, 2, 0, 1)))
+    pytorch_conv.bias.data = torch.tensor(tf_conv.bias.numpy())
+    return pytorch_conv
+
+
+def convert_bn(pytorch_bn, tf_bn):
+    pytorch_bn.weight.data = torch.tensor(tf_bn.gamma.numpy())
+    pytorch_bn.bias.data = torch.tensor(tf_bn.beta.numpy())
+    pytorch_bn.running_mean.data = torch.tensor(tf_bn.moving_mean.numpy())
+    pytorch_bn.running_var.data = torch.tensor(tf_bn.moving_variance.numpy())
+    return pytorch_bn
 
 
 pytorch_model = ResNet50()
 tf_keras_model = tf.keras.models.load_model(input_path)
-weights = keras_to_pytorch(tf_keras_model)
+
+pytorch_model.conv1 = convert_conv(pytorch_model.conv1, tf_keras_model.get_layer("conv1_conv"))
+pytorch_model.bn1 = convert_bn(pytorch_model.bn1, tf_keras_model.get_layer("conv1_bn"))
 
 
 
-i = 0
-j = 0
-for name, param in pytorch_model.named_parameters():
-    if 'conv' in name:
-        # param.data = torch.tensor(values[i])
-        i += 1
-    if 'bn' in name:
-        if 'weight' in name:
-        print("ou")
+conv_name = "conv2_"
+layers_list = []
+for layer in tf_keras_model.layers:
+    if conv_name in layer.get_config()['name']:
+        layers_list.append(layer)
 
-for layer in pytorch_model.children():
-    print(layer)
+for i in range(1, 4):
+    for j in range(0, 4):
+        for layer in layers_list:
+            if f"{conv_name}block{str(i)}_{str(j)}" in layer.get_config()['name']:
+                print(layer.get_config()['name'])
 
-x = torch.ones((2,3,224,224))
-outputs = pytorch_model(x)
+
+pytorch_model.layer1[0].get_submodule("bn1")
+
+pytorch_model.conv1.weight.data = torch.tensor(np.transpose(tf_keras_model.get_layer("conv1_conv").kernel.numpy(), (3, 2, 0, 1)))
+pytorch_model.conv1.bias.data = torch.tensor(tf_keras_model.get_layer("conv1_conv").bias.numpy())
+
+pytorch_model.bn1.weight.data = torch.tensor(tf_keras_model.get_layer("conv1_bn").gamma.numpy())
+pytorch_model.bn1.bias.data = torch.tensor(tf_keras_model.get_layer("conv1_bn").beta.numpy())
+pytorch_model.bn1.running_mean.data = torch.tensor(tf_keras_model.get_layer("conv1_bn").moving_mean.numpy())
+pytorch_model.bn1.running_var.data = torch.tensor(tf_keras_model.get_layer("conv1_bn").moving_variance.numpy())

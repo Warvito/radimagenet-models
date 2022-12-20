@@ -81,12 +81,14 @@ class ResNet50(nn.Module):
         planes: int,
         blocks: int,
         stride: int = 1,
-    ) -> nn.Sequential:
+    ):
         downsample = None
         if stride != 1 or self.inplanes != planes * Bottleneck.expansion:
-            downsample = nn.Sequential(
-                conv1x1(self.inplanes, planes * Bottleneck.expansion, stride),
-                nn.BatchNorm2d(planes * Bottleneck.expansion, eps=1.001e-5, momentum=0.99),
+            downsample = nn.ModuleList(
+                [
+                    conv1x1(self.inplanes, planes * Bottleneck.expansion, stride),
+                    nn.BatchNorm2d(planes * Bottleneck.expansion, eps=1.001e-5, momentum=0.99),
+                ]
             )
 
         layers = []
@@ -95,7 +97,7 @@ class ResNet50(nn.Module):
         for _ in range(1, blocks):
             layers.append(Bottleneck(self.inplanes, planes))
 
-        return nn.Sequential(*layers)
+        return nn.ModuleList(layers)
 
     def _forward_impl(self, x: Tensor) -> Tensor:
         # See note [TorchScript super()]
