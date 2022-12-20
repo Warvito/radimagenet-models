@@ -147,7 +147,7 @@ with torch.no_grad():
     h4 = pytorch_model.layer1[2].relu(h)
     h=h4
 
-    # h = pytorch_model.layer2[0].conv1(h)
+    h = pytorch_model.layer2[0].conv1(h)
     # h = pytorch_model.layer2[0].bn1(h)
     # h = pytorch_model.layer2[0].relu(h)
     # h = pytorch_model.layer2[0].conv2(h)
@@ -210,7 +210,7 @@ h = keras_model.get_layer("conv2_block3_add")([h3, h], training=False)
 h4 = keras_model.get_layer("conv2_block3_out")(h, training=False)
 h=h4
 
-# h = keras_model.get_layer("conv3_block1_1_conv")(h, training=False)
+h = keras_model.get_layer("conv3_block1_1_conv")(h, training=False)
 # h = keras_model.get_layer("conv3_block1_1_bn")(h, training=False)
 # h = keras_model.get_layer("conv3_block1_1_relu")(h, training=False)
 # h = keras_model.get_layer("conv3_block1_2_conv")(h, training=False)

@@ -20,14 +20,14 @@ class Bottleneck(nn.Module):
         super().__init__()
 
         width = int(planes)
-        self.conv1 = conv1x1(inplanes, width)
+        self.conv1 = conv1x1(inplanes, width, stride=stride)
         self.bn1 = nn.BatchNorm2d(width, eps=1.001e-5, momentum=0.99)
 
         self.conv2 = nn.Conv2d(
             width,
             width,
             kernel_size=3,
-            stride=stride,
+            stride=1,
             padding=1,
             bias=True,
         )
