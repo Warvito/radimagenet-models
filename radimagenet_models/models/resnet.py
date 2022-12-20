@@ -2,6 +2,7 @@
 from typing import Optional
 
 import gdown
+import torch
 import torch.nn as nn
 from torch import Tensor
 
@@ -126,5 +127,5 @@ def radimagenet_resnet50(model_path="./RadImageNet-ResNet50_notop.pth"):
         output=model_path,
         quiet=False,
     )
-    model.load_state_dict(model_path)
+    model.load_state_dict(torch.load(model_path))
     return model
