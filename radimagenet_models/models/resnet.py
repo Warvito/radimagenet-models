@@ -68,7 +68,7 @@ class ResNet50(nn.Module):
         super().__init__()
         self.inplanes = 64
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3, bias=True)
-        self.bn1 = nn.BatchNorm2d(self.inplanes, eps=1.001e-5, momentum=0.99)
+        self.bn1 = nn.BatchNorm2d(self.inplanes, eps=1.001e-5, momentum=0.01)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(64, 3)
@@ -84,11 +84,9 @@ class ResNet50(nn.Module):
     ):
         downsample = None
         if stride != 1 or self.inplanes != planes * Bottleneck.expansion:
-            downsample = nn.ModuleList(
-                [
+            downsample = nn.Sequential(
                     conv1x1(self.inplanes, planes * Bottleneck.expansion, stride),
                     nn.BatchNorm2d(planes * Bottleneck.expansion, eps=1.001e-5, momentum=0.99),
-                ]
             )
 
         layers = []
@@ -97,7 +95,7 @@ class ResNet50(nn.Module):
         for _ in range(1, blocks):
             layers.append(Bottleneck(self.inplanes, planes))
 
-        return nn.ModuleList(layers)
+        return nn.Sequential(*layers)
 
     def _forward_impl(self, x: Tensor) -> Tensor:
         # See note [TorchScript super()]
