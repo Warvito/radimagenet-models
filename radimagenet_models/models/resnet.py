@@ -142,6 +142,7 @@ def radimagenet_resnet50(
 
     filename = file_name
     cached_file = os.path.join(model_dir, filename)
+    print(f"checking if {str(cached_file)} exists")
     if not os.path.exists(cached_file):
         gdown.download(
             url="https://drive.google.com/uc?export=download&id=1VOWHgOq0rm7OkE_JxlWXhMAH4CvcXUHT",
