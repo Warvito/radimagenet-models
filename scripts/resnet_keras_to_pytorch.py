@@ -62,6 +62,7 @@ def convert_stack(pytorch_stack, keras_model, stack_name, num_blocks):
     return pytorch_stack
 
 
+# Testing
 def main(args):
     pytorch_model = ResNet50()
     keras_model = tf.keras.models.load_model(args.input_path)
