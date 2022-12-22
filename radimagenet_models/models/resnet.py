@@ -1,4 +1,6 @@
 """ Resnet implementation based on https://github.com/keras-team/keras/blob/master/keras/applications/resnet.py """
+import errno
+import os
 from typing import Optional
 
 import gdown
@@ -119,13 +121,34 @@ class ResNet50(nn.Module):
         return self._forward_impl(x)
 
 
-def radimagenet_resnet50(model_path="./RadImageNet-ResNet50_notop.pth"):
-    model = ResNet50()
+def radimagenet_resnet50(
+    model_dir: Optional[str] = None,
+    file_name: str = "RadImageNet-ResNet50_notop.pth",
+    progress: bool = True,
+):
+    if model_dir is None:
+        hub_dir = torch.hub.get_dir()
+        model_dir = os.path.join(hub_dir, "checkpoints")
 
-    gdown.download(
-        url="https://drive.google.com/uc?export=download&id=1VOWHgOq0rm7OkE_JxlWXhMAH4CvcXUHT",
-        output=model_path,
-        quiet=False,
-    )
-    model.load_state_dict(torch.load(model_path))
+    try:
+        os.makedirs(model_dir)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            # Directory already exists, ignore.
+            pass
+        else:
+            # Unexpected OSError, re-raise.
+            raise
+
+    filename = file_name
+    cached_file = os.path.join(model_dir, filename)
+    if not os.path.exists(cached_file):
+        gdown.download(
+            url="https://drive.google.com/uc?export=download&id=1VOWHgOq0rm7OkE_JxlWXhMAH4CvcXUHT",
+            output=cached_file,
+            quiet=not progress,
+        )
+
+    model = ResNet50()
+    model.load_state_dict(torch.load(cached_file))
     return model
