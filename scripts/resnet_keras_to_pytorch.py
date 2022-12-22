@@ -4,6 +4,8 @@ Script to transform the weights of the ResNetmodel from Keras to Pytorch.
 Script based on https://github.com/BMEII-AI/RadImageNet/issues/3#issuecomment-1232417600
 and https://discuss.pytorch.org/t/transferring-weights-from-keras-to-pytorch/9889
 """
+import argparse
+
 import numpy as np
 import tensorflow as tf
 import torch
@@ -60,9 +62,9 @@ def convert_stack(pytorch_stack, keras_model, stack_name, num_blocks):
     return pytorch_stack
 
 
-def main():
+def main(args):
     pytorch_model = ResNet50()
-    keras_model = tf.keras.models.load_model(input_path)
+    keras_model = tf.keras.models.load_model(args.input_path)
 
     # Convert weights
     pytorch_model.conv1 = convert_conv(pytorch_model.conv1, keras_model.get_layer("conv1_conv"))
@@ -93,8 +95,13 @@ def main():
     print(outputs_tf[0, :30, 0, 0])
 
     # Saving model
-    torch.save(pytorch_model.state_dict(), out_path)
+    torch.save(pytorch_model.state_dict(), args.output_path)
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input_path", help="Path to the original RadImageNet-ResNet50_notop.h5 file.")
+    parser.add_argument("--output_path", help="Path to save the converted .pth file.")
+    args = parser.parse_args()
+
+    main(args)
